@@ -26,5 +26,8 @@ sqlc:
 test:
 	go test -v -cover ./...
 
+server:
+	go run main.go
+
 # 執行item的變數
-.PHONY: postgres createdb dropdb migrateup migratedown sqlc test 
+.PHONY: postgres createdb dropdb migrateup migratedown sqlc test server 
