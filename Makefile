@@ -29,5 +29,8 @@ test:
 server:
 	go run main.go
 
+mock:
+	mockgen -package mockdb -destination db/mock/store.go  github.com/techschool/simplebank/db/sqlc Store
+
 # 執行item的變數
-.PHONY: postgres createdb dropdb migrateup migratedown sqlc test server 
+.PHONY: postgres createdb dropdb migrateup migratedown sqlc test server mock
