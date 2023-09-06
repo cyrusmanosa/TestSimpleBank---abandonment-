@@ -13,6 +13,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang/mock/gomock"
+	"github.com/lib/pq"
 	"github.com/stretchr/testify/require"
 	mockdb "github.com/techschool/simplebank/db/mock"
 	db "github.com/techschool/simplebank/db/sqlc"
@@ -25,10 +26,11 @@ type eqCreateUserParamsMatcher struct {
 }
 
 func (e eqCreateUserParamsMatcher) Matches(x interface{}) bool {
-	arg, ok := x.(*db.CreateUserParams)
+	arg, ok := x.(db.CreateUserParams)
 	if !ok {
 		return false
 	}
+
 	err := util.CheckPassword(e.password, arg.HashedPassword)
 	if err != nil {
 		return false
@@ -36,15 +38,18 @@ func (e eqCreateUserParamsMatcher) Matches(x interface{}) bool {
 	e.arg.HashedPassword = arg.HashedPassword
 	return reflect.DeepEqual(e.arg, arg)
 }
+
 func (e eqCreateUserParamsMatcher) String() string {
-	return fmt.Sprintf("matches arg %v and password %v", e.arg, e.password)
+	return fmt.Sprintf("match arg %v and password %v", e.arg, e.arg)
 }
-func EqCreateUserParams(arg db.CreateUserParams, password string) gomock.Matcher {
+
+func eqCreateUserParams(arg db.CreateUserParams, password string) gomock.Matcher {
 	return eqCreateUserParamsMatcher{arg, password}
 }
 
 func TestCreateUserAPI(t *testing.T) {
 	user, password := randomUser(t)
+
 	testCases := []struct {
 		name          string
 		body          gin.H
@@ -66,7 +71,7 @@ func TestCreateUserAPI(t *testing.T) {
 					Email:    user.Email,
 				}
 				store.EXPECT().
-					CreateUser(gomock.Any(), EqCreateUserParams(arg, password)).
+					CreateUser(gomock.Any(), eqCreateUserParams(arg, password)).
 					Times(1).
 					Return(user, nil)
 			},
@@ -84,30 +89,33 @@ func TestCreateUserAPI(t *testing.T) {
 				"email":     user.Email,
 			},
 			buildStubs: func(store *mockdb.MockStore) {
-				store.EXPECT().CreateUser(gomock.Any(), gomock.Any()).Times(1).
+				store.EXPECT().
+					CreateUser(gomock.Any(), gomock.Any()).
+					Times(1).
 					Return(db.User{}, sql.ErrConnDone)
 			},
 			checkResponse: func(recoder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusInternalServerError, recoder.Code)
 			},
 		},
-		// {
-		// 	name: "DuplicateUsername",
-		// 	body: gin.H{
-		// 		"username":  user.Username,
-		// 		"password":  password,
-		// 		"full_name": user.FullName,
-		// 		"email":     user.Email,
-		// 	},
-		// 	buildStubs: func(store *mockdb.MockStore) {
-		// 		store.EXPECT().CreateUser(gomock.Any(), gomock.Any()).
-		// 		Times(1).
-		// 			Return(db.User{}, &pg.Error{Code: "23505"})
-		// 	},
-		// 	checkResponse: func(recoder *httptest.ResponseRecorder) {
-		// 		require.Equal(t, http.StatusForbidden, recoder.Code)
-		// 	},
-		// },
+		{
+			name: "DuplicateUsername",
+			body: gin.H{
+				"username":  user.Username,
+				"password":  password,
+				"full_name": user.FullName,
+				"email":     user.Email,
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					CreateUser(gomock.Any(), gomock.Any()).
+					Times(1).
+					Return(db.User{}, &pq.Error{Code: "23505"})
+			},
+			checkResponse: func(recoder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusForbidden, recoder.Code)
+			},
+		},
 		{
 			name: "InvallidUsername",
 			body: gin.H{
@@ -117,7 +125,9 @@ func TestCreateUserAPI(t *testing.T) {
 				"email":     user.Email,
 			},
 			buildStubs: func(store *mockdb.MockStore) {
-				store.EXPECT().CreateUser(gomock.Any(), gomock.Any()).Times(0)
+				store.EXPECT().
+					CreateUser(gomock.Any(), gomock.Any()).
+					Times(0)
 			},
 			checkResponse: func(recoder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusBadRequest, recoder.Code)
@@ -132,7 +142,9 @@ func TestCreateUserAPI(t *testing.T) {
 				"email":     "invallid-email",
 			},
 			buildStubs: func(store *mockdb.MockStore) {
-				store.EXPECT().CreateUser(gomock.Any(), gomock.Any()).Times(0)
+				store.EXPECT().
+					CreateUser(gomock.Any(), gomock.Any()).
+					Times(0)
 			},
 			checkResponse: func(recoder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusBadRequest, recoder.Code)
@@ -164,7 +176,7 @@ func TestCreateUserAPI(t *testing.T) {
 			store := mockdb.NewMockStore(ctrl)
 			tc.buildStubs(store)
 
-			server := NewServer(store)
+			server := newTestServer(t, store)
 			recoder := httptest.NewRecorder()
 
 			// Marshal body data to JSON
