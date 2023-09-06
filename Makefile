@@ -2,7 +2,7 @@
 
 # 建立PSQL
 postgres:
-	docker run --name postgres12 -p 5432:5432 -e POSTGRES_USER=root -e POSTGRES_PASSWORD=secret -d postgres:12-alpine
+	docker run --name postgres12 --network bank-network -p 5432:5432 -e POSTGRES_USER=root -e POSTGRES_PASSWORD=secret -d postgres:12-alpine
 
 # 建立DB
 createdb:
@@ -37,6 +37,8 @@ server:
 
 mock:
 	mockgen -package mockdb -destination db/mock/store.go  github.com/techschool/simplebank/db/sqlc Store
+
+
 
 # 執行item的變數
 .PHONY: postgres createdb dropdb migrateup migrateup1 migratedown migratedown1 sqlc test server mock
