@@ -1,16 +1,20 @@
 # iterm 到在此的File內輸入make "item" ＝》 即可進行
 
 # 建立PSQL
+dockernetwork:
+	docker network create bank-network
+
+# 建立PSQL
 postgres:
-	docker run --name postgres12 --network bank-network -p 5432:5432 -e POSTGRES_USER=root -e POSTGRES_PASSWORD=secret -d postgres:12-alpine
+	docker run --name postgres15.4 --network bank-network -p 5432:5432 -e POSTGRES_USER=root -e POSTGRES_PASSWORD=secret -d postgres:15.4-alpine
 
 # 建立DB
 createdb:
-	docker exec -it postgres12 createdb --username=root --owner=root simple_bank
+	docker exec -it postgres15.4 createdb --username=root --owner=root simple_bank
 
 # 移除DB
 dropdb:
-	docker exec -it postgres12 dropdb simple_bank
+	docker exec -it postgres15.4 dropdb simple_bank
 	
 # 將舊DB遷移到新DB
 migrateup:
@@ -38,7 +42,5 @@ server:
 mock:
 	mockgen -package mockdb -destination db/mock/store.go  github.com/techschool/simplebank/db/sqlc Store
 
-
-
 # 執行item的變數
-.PHONY: postgres createdb dropdb migrateup migrateup1 migratedown migratedown1 sqlc test server mock
+.PHONY: dockernetwork postgres createdb dropdb migrateup migrateup1 migratedown migratedown1 sqlc test server mock
