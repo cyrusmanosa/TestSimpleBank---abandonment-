@@ -22,9 +22,9 @@ dropdb:
 # migrateup:
 #   migrate -path db/migration -database "postgresql://root:secret@localhost:5432/simple_bank?sslmode=disable" -verbose up
 
-#AWS
-migrateup:
-	migrate -path db/migration -database "postgresql://root:kYDoSmiamiorvAIpx7IT@testsimplebank.csnputdh1foj.ap-northeast-3.rds.amazonaws.com:5432/simple_bank?sslmode=disable" -verbose up
+#AWS 例
+# migrateup:
+# 	migrate -path db/migration -database "postgresql://root:kYDoSmiamiorvAIpx7IT@testsimplebank.csnputdh1foj.ap-northeast-3.rds.amazonaws.com:5432/simple_bank?sslmode=disable" -verbose up
 
 migrateup1:
 	migrate -path db/migration -database "postgresql://root:secret@localhost:5432/simple_bank?sslmode=disable" -verbose up 1
